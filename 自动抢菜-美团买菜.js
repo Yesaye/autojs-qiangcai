@@ -112,34 +112,27 @@ function alertShock() {
 // 全选购物车
 function seelctAllcart() {
     var j1 = getCartNum();
-    if (j1 != 0) {
+    if (j1 == 0) {
+        text("全选").findOne().parent().click();
+    } else {
         text("全选").findOne().parent().click();
         while (true) {
             var j2 = getCartNum();
-            if (j2 == 0 || j1 != j2) {
+            if (j1 != getCartNum()) {
+                if(j2 == 0){
+                    text("全选").findOne().parent().click();
+                    while(j1 == getCartNum()){}
+                }
                 break;
             }
         }
-        if (getCartNum() == 0) {
-            text("全选").findOne().parent().click();
-        }
-    } else {
-        text("全选").findOne().parent().click();
     }
 }
 
 // 获取购物车数量
 function getCartNum() {
-    for (let i = 0; i < 30; i++) {
-        if (textStartsWith("结算").exists()) {
-            var temp = textStartsWith("结算").findOne().text().match(/\d+/);
-            return temp ? temp[0] : 0;
-        } else {
-            continue;
-        }
-        sleep(100)
-    }
-    return 0;
+    var temp = textStartsWith("结算").findOne().text().match(/\d+/);
+    return temp ? temp[0] : 0;
 }
 
 // 监测线程
