@@ -48,7 +48,7 @@ ui.layout(
 
 // 初始化参数
 // storages.remove("tywzdj")
-var version = "1.1.0";
+var version = "1.2.0";
 var floatyRunning = false;
 var allData = []; // 当前加载的的allData
 var listData = []; // 当前预设的listData
@@ -414,10 +414,10 @@ function clickText(t, d, m) {
     console.info("初始化线程:" + t + " " + d + " " + m)
     var j = 1;
     while (true) {
-        var temp = m==0 ? text(t) : 
-                   m==1 ? textStartsWith(t) : 
-                   m==2 ? textEnds(t) : 
-                   textContains(t);
+        var temp = m==0 ? className("android.widget.TextView").text(t) : 
+                   m==1 ? className("android.widget.TextView").textStartsWith(t) : 
+                   m==2 ? className("android.widget.TextView").textEnds(t) : 
+                   className("android.widget.TextView").textContains(t);
         if (temp.exists) {
             findParentClick(temp.findOne(), 1)
             console.info("第" + j++ + "次'" + t + "'")
