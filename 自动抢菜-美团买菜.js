@@ -112,16 +112,17 @@ function alertShock() {
 // 全选购物车
 function seelctAllcart() {
     var j1 = getCartNum();
+    console.info("j1: "+j1)
     if (j1 == 0) {
         text("全选").findOne().parent().click();
     } else {
         text("全选").findOne().parent().click();
         while (true) {
             var j2 = getCartNum();
-            if (j1 != getCartNum()) {
+            console.info("j2: "+j2)
+            if (j1 != j2) {
                 if(j2 == 0){
                     text("全选").findOne().parent().click();
-                    while(j1 == getCartNum()){}
                 }
                 break;
             }
