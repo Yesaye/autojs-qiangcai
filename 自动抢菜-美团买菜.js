@@ -11,8 +11,10 @@ const listData = [
 ];
 const times = [false, [5, 59, 50],[8, 29, 30]];
 
-// 下面参数自行修改
-var timing = 0; // 执行模式 0: 立即执行 1: 5时59分50秒开始 2: 8时29分50秒开始
+// 可修改
+// ============================================
+var timing = 0; // 执行模式   0: 立即执行   1: 5时59分50秒开始   2: 8时29分50秒开始
+// ============================================
 
 // 开始执行
 run();
@@ -39,7 +41,7 @@ function run() {
     console.info("全选购物车")
     seelctAllcart();
 
-    console.info("4、开始抢购")
+    console.info("开始抢购")
     startClickThreads(listData);
 
 }
@@ -112,14 +114,12 @@ function alertShock() {
 // 全选购物车
 function seelctAllcart() {
     var j1 = getCartNum();
-    console.info("j1: "+j1)
     if (j1 == 0) {
         text("全选").findOne().parent().click();
     } else {
         text("全选").findOne().parent().click();
         while (true) {
             var j2 = getCartNum();
-            console.info("j2: "+j2)
             if (j1 != j2) {
                 if(j2 == 0){
                     text("全选").findOne().parent().click();
