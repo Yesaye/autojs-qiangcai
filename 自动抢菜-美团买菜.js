@@ -12,7 +12,7 @@ const listData = [
 const times = [false, [5,59,50], [8,29,30]]
 
 // 下面参数自行修改
-var timing = 1; // 执行模式 0: 立即执行 1: 5时59分50秒开始 2: 8时29分50秒开始
+var timing = 0; // 执行模式 0: 立即执行 1: 5时59分50秒开始 2: 8时29分50秒开始
 
 // 开始执行
 run();
@@ -153,7 +153,7 @@ function listenThreads(){
 }
 
 function timingStart(time){
-    if(time!=null){
+    if(time){
         console.info("准备定时执行，目标时间: "+time[0]+"时"+time[1]+"分"+time[2]+"秒")
         while(true){
             let date = new Date();
