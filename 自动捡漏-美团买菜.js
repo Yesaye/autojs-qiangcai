@@ -3,13 +3,29 @@ console.show()
 console.info("注意：提前清空购物车和预约的到货提醒")
 
 console.info("初始化参数")
-var textArray = ["纸","洗衣液"];
 var first = true;
 var i = -1;
+
+
+// 可修改
+// ============================================
+// 要捡漏的品类
+var textArray = ["纸","洗衣液"];
 // 每个商品时间间隔（分钟）
 var interval = 1;
 // 检测卡住的时间限制（分钟）
 var ckTimeout = 1;
+// ============================================
+
+// 美团买菜配置
+const listData = [
+    {words:"结算",matchType:1,delay:1000},
+    {words:"我知道了",matchType:0,delay:0},
+    {words:"返回购物车",matchType:0,delay:0},
+    {words:"极速支付",matchType:0,delay:0},
+    {words:"立即支付",matchType:0,delay:0},
+    {words:"确认并支付",matchType:0,delay:0}
+];
 
 console.info("打开美团买菜")
 app.launchPackage("com.meituan.retail.v.android")
@@ -60,6 +76,7 @@ while (true) {
         console.info("出现‘到货提醒’，返回，开始下一个商品’")
         back()
         state = 1
+        sleep(100)
         jrgwc.interrupt()
     })
     jrgwc = threads.start(function () {
@@ -87,51 +104,33 @@ while (true) {
         successShock();
     })
     console.info("开始抢购")
-    run()
+    startClickThreads(listData);
 }
 
-// 向上搜寻点击
-function findParentClick(p, deep) {
-    if (p.clickable()) {
-        p.click();
-    } else {
-        if ((deep++) > 6) {
-            toast("click err")
-            return;
-        }
-        findParentClick(p.parent())
-    }
-}
 
-// 抢购（美团）
-function run() {
-    var textArray = [
-        ["结算", 1000, true],
-        ["我知道了", 0, false],
-        ["返回购物车", 0, false],
-        ["极速支付", 0, false],
-        ["立即支付", 0, false],
-        ["确认并支付", 0, false]
-    ]
+// 批量开启文字点击线程
+function startClickThreads(list){
     var tArray = new Array();
-    for (var i = 0, j = 0; i < textArray.length; i++, j = 0) {
-        function abc(iii, jjj) {
-            tArray[iii] = threads.start(function () {
-                clickText(textArray[iii][jjj], textArray[iii][jjj + 1], textArray[iii][jjj + 2])
+    for (var i = 0; i < list.length; i++) {
+        (function abc(j) {
+            tArray[j] = threads.start(function () {
+                clickText(list[j].words,list[j].delay,list[j].matchType)
             })
-        }
-        abc(i, j)
+        })(i)
     }
 }
 
-// 基础点击方法
-function clickText(t, d, start) {
-    console.info("初始化线程:" + t + " " + d + " " + start)
+// 基础点击方法 t-文字 d-延迟 m-匹配类型
+function clickText(t, d, m) {
+    console.info("初始化线程:" + t + " " + d + " " + m)
     var j = 1;
     while (true) {
-        var temp = start ? textStartsWith(t) : text(t);
+        var temp = m==0 ? className("android.widget.TextView").text(t) : 
+                   m==1 ? className("android.widget.TextView").textStartsWith(t) : 
+                   m==2 ? className("android.widget.TextView").textEnds(t) : 
+                   className("android.widget.TextView").textContains(t);
         if (temp.exists) {
-            temp.findOne().parent().click()
+            findParentClick(temp.findOne(), 1)
             console.info("第" + j++ + "次'" + t + "'")
         }
         if (d != 0) {
@@ -140,7 +139,29 @@ function clickText(t, d, start) {
     }
 }
 
-// 警报震动
+// 向上点击
+function findParentClick(p,deep){
+    if(p.clickable()){
+        p.click();
+    } else {
+        if((deep++)>6){
+            toast("click err")
+            return;
+        }
+        findParentClick(p.parent())
+    }
+}
+
+// 成功震动 10秒
+function successShock() {
+    for (i = 0; i < 5; i++) {
+        device.vibrate(300)
+        sleep(500)
+        device.vibrate(1000)
+        sleep(1500)
+    }
+}
+// 警报震动 19秒
 function alertShock() {
     for (i = 0; i < 10; i++) {
         device.vibrate(300)
@@ -149,13 +170,5 @@ function alertShock() {
         sleep(800)
         device.vibrate(400)
         sleep(800)
-    }
-}
-
-// 成功震动
-function successShock() {
-    for (i = 0; i < 5; i++) {
-        device.vibrate(1000)
-        sleep(1500)
     }
 }
