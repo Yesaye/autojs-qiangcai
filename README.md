@@ -1,5 +1,6 @@
 # autojs-qiangcai
 分享两个基于Autojs模拟点击的美团抢菜的autojs脚本
+有空整一个叮咚的
 
 ## 通用文字点击App.js  
 
