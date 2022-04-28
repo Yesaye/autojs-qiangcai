@@ -97,7 +97,9 @@ function  firstInit(){
                         {words:"返回购物车",matchType:0,delay:0,matchText:"精确[返回购物车]"},
                         {words:"极速支付",matchType:0,delay:0,matchText:"精确[极速支付]"},
                         {words:"立即支付",matchType:0,delay:0,matchText:"精确[立即支付]"},
-                        {words:"确认并支付",matchType:0,delay:0,matchText:"精确[确认并支付]"}
+                        {words:"确认并支付",matchType:0,delay:0,matchText:"精确[确认并支付]"},
+                        {words: "重新加载",matchType: 0,delay: 500,matchText:"精确[重新加载]"},
+                        {words: "免密支付",matchType: 0,delay: 1000,matchText:"精确[免密支付]"}
                     ]
             },
             {
@@ -107,7 +109,7 @@ function  firstInit(){
                         {words:"去结算",matchType:1,delay:0,matchText:"左模糊[去结算]"},
                         {words:"返回购物车",matchType:0,delay:0,matchText:"精确[返回购物车]"},
                         {words:"立即支付",matchType:0,delay:0,matchText:"精确[立即支付]"},
-                        {words:"重新加载",matchType:0,delay:0,matchText:"精确[重新加载]"}
+                        {words:"重新加载",matchType:0,delay:100,matchText:"精确[重新加载]"}
                     ]
             }
         ];
@@ -484,6 +486,7 @@ function clickTextLoop(t, d, m) {
 // 基础点击方法 t-文字 m-匹配类型
 function clickTextOnce(t, m){
     findParentClick(matchText(t, m).findOne(), 1);
+    console.info("点击'" + t + "'")
 }
 
 // 匹配文字
