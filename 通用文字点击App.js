@@ -44,9 +44,9 @@ ui.layout(
     </frame>
 );
 
-
-
-// 初始化参数
+//===============================================================================
+//===================================初始化=================================
+//===============================================================================
 // storages.remove("tywzdj")
 var version = "1.2.0";
 var floatyRunning = false;
@@ -60,7 +60,9 @@ checkUpdateShowInfo();
 firstInit();
 loadData();
 
-////////////////////////////////////////////////////////////////////////////////////
+//===============================================================================
+//===================================按钮=================================
+//===============================================================================
 // 隐私协议
 function checkUpdateShowInfo(){
     if(storage.contains("updateInfo") && storage.get("updateInfo")==version){
@@ -169,10 +171,10 @@ function getRjqc(){
     }
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////
-// 点击启动
-ui.launch.on("click",function(){
+//===============================================================================
+//===================================ui控件触发=================================
+//===============================================================================
+function launchBtn(){
     // 检查悬浮窗权限
     if (!floaty.checkPermission()) {
         confirm("需要[悬浮窗权限]，请在随后的界面中允许并重新运行").then(ok => {
@@ -211,10 +213,9 @@ ui.launch.on("click",function(){
             setTimeout(()=>{ui.launch.setText("启动")},3000)
         }
     }
-})
-
-// 点击预设名单
-ui.preset.on("click",function(){
+}
+function presetBtn(){
+    
     allData = storage.get("allData");
     var menu = presetMenu.slice()
     menu.unshift("[↑]导入预设")
@@ -303,10 +304,8 @@ ui.preset.on("click",function(){
             choicePreset(presetMenu[i-3])
         }
     });
-})
-
-// 删除预设
-ui.deletePreset.on("click",function(){
+}
+function deletePresetBtn(){
     if(!presetMenu[presetMenuIndex]){
         toast("已经没有啦~")
         return;
@@ -332,50 +331,46 @@ ui.deletePreset.on("click",function(){
             toast("删除成功")
         }
     });
-})
-
-// 添加明细
-ui.add.on("click", () => {
+}
+function addBtn(){
     dialogs.rawInput("请输入要点击的文字")
-        .then(words => {
-            if (!words) {
-                return;
-            }
-            dialogs.build({
-                title: "查找类型",
-                items: ["精确查询["+words+"]", "左模糊["+words+"]", "右模糊["+words+"]", "全模糊["+words+"]"],
-                itemsSelectMode: "single",
-                itemsSelectedIndex: 0
-            }).on("single_choice", (matchType, matchText)=>{
-                 dialogs.rawInput("请输入间隔(ms)", "0")
-                    .then(delay => {
-                        if(delay==null){
-                            return;
+    .then(words => {
+        if (!words) {
+            return;
+        }
+        dialogs.build({
+            title: "查找类型",
+            items: ["精确查询["+words+"]", "左模糊["+words+"]", "右模糊["+words+"]", "全模糊["+words+"]"],
+            itemsSelectMode: "single",
+            itemsSelectedIndex: 0
+        }).on("single_choice", (matchType, matchText)=>{
+                dialogs.rawInput("请输入间隔(ms)", "0")
+                .then(delay => {
+                    if(delay==null){
+                        return;
+                    }
+                    allData = storage.get("allData");
+                    var listDataTemp;
+                    for(var i=0;i<allData.length;i++){
+                        if(allData[i].presetName == presetMenu[presetMenuIndex]){
+                            listDataTemp = allData[i].listData;
+                            break;
                         }
-                        allData = storage.get("allData");
-                        var listDataTemp;
-                        for(var i=0;i<allData.length;i++){
-                            if(allData[i].presetName == presetMenu[presetMenuIndex]){
-                                listDataTemp = allData[i].listData;
-                                break;
-                            }
-                        }
-                        listDataTemp.push({
-                            words: words,
-                            delay: delay,
-                            matchType: matchType,
-                            matchText: matchText
-                        });
-                        save(null, allData)
+                    }
+                    listDataTemp.push({
+                        words: words,
+                        delay: delay,
+                        matchType: matchType,
+                        matchText: matchText
                     });
-                }).show();
-        })
-});
-
-// 删除明细
-ui.list.on("item_bind", function (itemView, itemHolder) {
-    itemView.remove.on("click", function(){
-        confirm("确定删除条件[" + itemHolder.item.words + "]吗？")
+                    save(null, allData)
+                });
+            }).show();
+    })
+}
+function deleteList(iv, ih){
+    iv.remove.on("click", function(){
+        confirm("确定删除条件[" + ih.item.words + "]吗？")
             .then(ok => {
                 if (ok) {
                     allData = storage.get("allData");
@@ -386,62 +381,30 @@ ui.list.on("item_bind", function (itemView, itemHolder) {
                             break;
                         }
                     }
-                    listDataTemp.splice(itemHolder.position, 1);
+                    listDataTemp.splice(ih.position, 1);
                     save(null, allData)
 
                 }
         });
-    });
-});
+    });}
+// 点击启动
+ui.launch.on("click",() => {launchBtn()})
 
+// 点击预设名单
+ui.preset.on("click",() => {presetBtn()})
 
-////////////////////////////////////////////////////////////////////////////////////
-// 向上搜寻点击
-function findParentClick(p,deep){
-    if(p.clickable()){
-        p.click();
-    } else {
-        if((deep++)>6){
-            toast("click err")
-            return;
-        }
-        findParentClick(p.parent())
-    }
-}
+// 删除预设
+ui.deletePreset.on("click",() => {deletePresetBtn})
 
-// 基础点击方法 t-文字 d-延迟 m-匹配类型
-function clickText(t, d, m) {
-    console.info("初始化线程:" + t + " " + d + " " + m)
-    var j = 1;
-    while (true) {
-        var temp = m==0 ? className("android.widget.TextView").text(t) : 
-                   m==1 ? className("android.widget.TextView").textStartsWith(t) : 
-                   m==2 ? className("android.widget.TextView").textEnds(t) : 
-                   className("android.widget.TextView").textContains(t);
-        if (temp.exists) {
-            findParentClick(temp.findOne(), 1)
-            console.info("第" + j++ + "次'" + t + "'")
-        }
-        if (d != 0) {
-            sleep(d)
-        }
-    }
-}
+// 添加明细
+ui.add.on("click", () => {addBtn()});
 
-// 批量开启文字点击线程
-function startClickThreads(){
-    var tArray = new Array();
-    for (var i = 0; i < listData.length; i++) {
-        (function abc(j) {
-            tArray[j] = threads.start(function () {
-                clickText(listData[j].words,listData[j].delay,listData[j].matchType)
-            })
-        })(i)
-    }
-}
+// 删除明细
+ui.list.on("item_bind", (itemView, itemHolder) => {deleteList(itemView, itemHolder)});
 
-
-////////////////////////////////////////////////////////////////////////////////////
+//===============================================================================
+//===================================悬浮窗=================================
+//===============================================================================
 // 创建悬浮窗（ui模式下需要在线程里创建悬浮窗）
 function showFloaty(){
     floatyRunning = true;
@@ -461,7 +424,7 @@ function showFloaty(){
             if(!excuting){
                 window.startFloaty.setText("正在运行")
                 window.boxFloaty.setAlpha(0.5)
-                startClickThreads()
+                startClickThreads(listData)
                 window.disableFocus()
                 excuting = true;
             }
@@ -490,4 +453,58 @@ function showFloaty(){
             window.setAdjustEnabled(!window.isAdjustEnabled());
         });
     })
+}
+
+//===============================================================================
+//===================================文字点击部分=================================
+//===============================================================================
+// 批量开启文字点击线程
+function startClickThreads(list) {
+    for (let i = 0; i < list.length; i++) {
+        (function abc(j) {
+            threads.start(function () {
+                clickTextLoop(list[j].words, list[j].delay, list[j].matchType)
+            })
+        })(i)
+    }
+}
+
+// 基础点击方法 t-文字 d-间隔 m-匹配类型
+function clickTextLoop(t, d, m) {
+    console.info("初始化线程:" + t + " " + d + " " + m)
+    for(let j = 1;;j++){
+        findParentClick(matchText(t, m).findOne(), 1);
+        console.info("第" + j + "次'" + t + "'")
+        if (d != 0) {
+            sleep(d)
+        }
+    }
+}
+
+// 基础点击方法 t-文字 m-匹配类型
+function clickTextOnce(t, m){
+    findParentClick(matchText(t, m).findOne(), 1);
+}
+
+// 匹配文字
+function matchText(t, m){
+    let tv = className("android.widget.TextView");
+    let temp = m == 0 ? tv.text(t) :
+        m == 1 ? tv.textStartsWith(t) :
+        m == 2 ? tv.textEnds(t) :
+        tv.textContains(t);
+    return temp;
+}
+
+// 向上点击
+function findParentClick(p, deep) {
+    if (p.clickable()) {
+        p.click();
+    } else {
+        if ((deep++) > 6) {
+            toast("click err")
+            return;
+        }
+        findParentClick(p.parent())
+    }
 }
