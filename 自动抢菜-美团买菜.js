@@ -1,20 +1,25 @@
 console.show()
 
-// 配置（不需要修改）
+//===============================================================================
+//===================================可修改=================================
+//===============================================================================
+var timing = 0; // 执行模式   0: 立即执行   1: 5时59分50秒开始   2: 8时29分50秒开始
+
+
+//===============================================================================
+//===================================基础配置=================================
+//===============================================================================
 const listData = [
     {words: "结算",matchType: 1,delay: 1000},
     {words: "我知道了",matchType: 0,delay: 0},
     {words: "返回购物车",matchType: 0,delay: 0},
     {words: "极速支付",matchType: 0,delay: 0},
     {words: "立即支付",matchType: 0,delay: 0},
-    {words: "确认并支付",matchType: 0,delay: 0}
+    {words: "确认并支付",matchType: 0,delay: 0},
+    {words: "重新加载",matchType: 0,delay: 500}
 ];
-const times = [false, [5, 59, 50],[8, 29, 30]];
+const times = [false, [5, 59, 50],[8, 29,50]];
 
-// 可修改
-// ============================================
-var timing = 0; // 执行模式   0: 立即执行   1: 5时59分50秒开始   2: 8时29分50秒开始
-// ============================================
 
 // 开始执行
 run();
@@ -28,87 +33,24 @@ function run() {
 
     console.info("点击跳过")
     var stipBtnThread = threads.start(function () {
-        text("跳过").findOne().parent().click();
+        clickTextOnce("跳过", 0)
+        clickTextOnce("确认选择", 0)
     })
 
     console.info("点击购物车")
     threads.start(function () {
         id("img_shopping_cart").findOne().parent().click();
-        listenThreads();
         stipBtnThread.interrupt()
     })
-
+    
     console.info("全选购物车")
     seelctAllcart();
-
+    
+    console.info("开启监测线程")
+    listenThreads();
     console.info("开始抢购")
     startClickThreads(listData);
 
-}
-
-// 批量开启文字点击线程
-function startClickThreads(list) {
-    var tArray = new Array();
-    for (var i = 0; i < list.length; i++) {
-        (function abc(j) {
-            tArray[j] = threads.start(function () {
-                clickText(list[j].words, list[j].delay, list[j].matchType)
-            })
-        })(i)
-    }
-}
-
-// 基础点击方法 t-文字 d-延迟 m-匹配类型
-function clickText(t, d, m) {
-    console.info("初始化线程:" + t + " " + d + " " + m)
-    var j = 1;
-    while (true) {
-        var temp = m == 0 ? className("android.widget.TextView").text(t) :
-            m == 1 ? className("android.widget.TextView").textStartsWith(t) :
-            m == 2 ? className("android.widget.TextView").textEnds(t) :
-            className("android.widget.TextView").textContains(t);
-        if (temp.exists) {
-            findParentClick(temp.findOne(), 1)
-            console.info("第" + j++ + "次'" + t + "'")
-        }
-        if (d != 0) {
-            sleep(d)
-        }
-    }
-}
-
-// 向上点击
-function findParentClick(p, deep) {
-    if (p.clickable()) {
-        p.click();
-    } else {
-        if ((deep++) > 6) {
-            toast("click err")
-            return;
-        }
-        findParentClick(p.parent())
-    }
-}
-
-// 成功震动 10秒
-function successShock() {
-    for (i = 0; i < 5; i++) {
-        device.vibrate(300)
-        sleep(500)
-        device.vibrate(1000)
-        sleep(1500)
-    }
-}
-// 警报震动 19秒
-function alertShock() {
-    for (i = 0; i < 10; i++) {
-        device.vibrate(300)
-        sleep(300)
-        device.vibrate(800)
-        sleep(800)
-        device.vibrate(400)
-        sleep(800)
-    }
 }
 
 // 全选购物车
@@ -148,6 +90,7 @@ function listenThreads() {
     })
 }
 
+// 延迟阻塞
 function timingStart(time) {
     if (time) {
         console.info("准备定时执行，目标时间: " + time[0] + "时" + time[1] + "分" + time[2] + "秒")
@@ -159,5 +102,84 @@ function timingStart(time) {
             console.info("当前时间:" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds())
             sleep(1000)
         }
+    }
+}
+
+
+//===============================================================================
+//===================================震动方式=================================
+//===============================================================================
+// 成功震动 10秒
+function successShock() {
+    for (i = 0; i < 5; i++) {
+        device.vibrate(300)
+        sleep(500)
+        device.vibrate(1000)
+        sleep(1500)
+    }
+}
+// 警报震动 19秒
+function alertShock() {
+    for (i = 0; i < 10; i++) {
+        device.vibrate(300)
+        sleep(300)
+        device.vibrate(800)
+        sleep(800)
+        device.vibrate(400)
+        sleep(800)
+    }
+}
+
+//===============================================================================
+//===================================文字点击部分=================================
+//===============================================================================
+// 批量开启文字点击线程
+function startClickThreads(list) {
+    for (let i = 0; i < list.length; i++) {
+        (function abc(j) {
+            threads.start(function () {
+                clickTextLoop(list[j].words, list[j].delay, list[j].matchType)
+            })
+        })(i)
+    }
+}
+
+// 基础点击方法 t-文字 d-间隔 m-匹配类型
+function clickTextLoop(t, d, m) {
+    console.info("初始化线程:" + t + " " + d + " " + m)
+    for(let j = 1;;j++){
+        findParentClick(matchText(t, m).findOne(), 1);
+        console.info("第" + j + "次'" + t + "'")
+        if (d != 0) {
+            sleep(d)
+        }
+    }
+}
+
+// 基础点击方法 t-文字 m-匹配类型
+function clickTextOnce(t, m){
+    findParentClick(matchText(t, m).findOne(), 1);
+}
+
+// 匹配文字
+function matchText(t, m){
+    let tv = className("android.widget.TextView");
+    let temp = m == 0 ? tv.text(t) :
+        m == 1 ? tv.textStartsWith(t) :
+        m == 2 ? tv.textEnds(t) :
+        tv.textContains(t);
+    return temp;
+}
+
+// 向上点击
+function findParentClick(p, deep) {
+    if (p.clickable()) {
+        p.click();
+    } else {
+        if ((deep++) > 6) {
+            toast("click err")
+            return;
+        }
+        findParentClick(p.parent())
     }
 }
