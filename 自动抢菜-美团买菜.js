@@ -1,4 +1,5 @@
 console.show()
+console.info("注意：提前将商品加入购物车")
 
 //===============================================================================
 //===================================可修改=================================
@@ -16,7 +17,8 @@ const listData = [
     {words: "极速支付",matchType: 0,delay: 0},
     {words: "立即支付",matchType: 0,delay: 0},
     {words: "确认并支付",matchType: 0,delay: 0},
-    {words: "重新加载",matchType: 0,delay: 500}
+    {words: "重新加载",matchType: 0,delay: 500},
+    {words: "免密支付",matchType: 0,delay: 1000}
 ];
 const times = [false, [5, 59, 50],[8, 29,50]];
 
@@ -31,16 +33,18 @@ function run() {
     console.info("打开美团买菜")
     launchApp("美团买菜")
 
-    console.info("点击跳过")
     var stipBtnThread = threads.start(function () {
         clickTextOnce("跳过", 0)
+    })
+    var qrBtnThread = threads.start(function () {
         clickTextOnce("确认选择", 0)
     })
 
     console.info("点击购物车")
     threads.start(function () {
         id("img_shopping_cart").findOne().parent().click();
-        stipBtnThread.interrupt()
+        stipBtnThread.interrupt();
+        qrBtnThread.interrupt();
     })
     
     console.info("全选购物车")
@@ -53,6 +57,33 @@ function run() {
 
 }
 
+//===============================================================================
+//===================================震动方式=================================
+//===============================================================================
+// 成功震动 10秒
+function successShock() {
+    for (i = 0; i < 5; i++) {
+        device.vibrate(300)
+        sleep(500)
+        device.vibrate(1000)
+        sleep(1500)
+    }
+}
+// 警报震动 19秒
+function alertShock() {
+    for (i = 0; i < 10; i++) {
+        device.vibrate(300)
+        sleep(300)
+        device.vibrate(800)
+        sleep(800)
+        device.vibrate(400)
+        sleep(800)
+    }
+}
+
+//===============================================================================
+//===================================额外功能=================================
+//===============================================================================
 // 全选购物车
 function seelctAllcart() {
     var j1 = getCartNum();
@@ -105,31 +136,6 @@ function timingStart(time) {
     }
 }
 
-
-//===============================================================================
-//===================================震动方式=================================
-//===============================================================================
-// 成功震动 10秒
-function successShock() {
-    for (i = 0; i < 5; i++) {
-        device.vibrate(300)
-        sleep(500)
-        device.vibrate(1000)
-        sleep(1500)
-    }
-}
-// 警报震动 19秒
-function alertShock() {
-    for (i = 0; i < 10; i++) {
-        device.vibrate(300)
-        sleep(300)
-        device.vibrate(800)
-        sleep(800)
-        device.vibrate(400)
-        sleep(800)
-    }
-}
-
 //===============================================================================
 //===================================文字点击部分=================================
 //===============================================================================
@@ -159,6 +165,7 @@ function clickTextLoop(t, d, m) {
 // 基础点击方法 t-文字 m-匹配类型
 function clickTextOnce(t, m){
     findParentClick(matchText(t, m).findOne(), 1);
+    console.info("点击'" + t + "'")
 }
 
 // 匹配文字
