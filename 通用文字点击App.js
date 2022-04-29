@@ -48,7 +48,7 @@ ui.layout(
 //===================================初始化=================================
 //===============================================================================
 // storages.remove("tywzdj")
-var version = "1.2.0";
+var version = "1.3.0";
 var floatyRunning = false;
 var allData = []; // 当前加载的的allData
 var listData = []; // 当前预设的listData
@@ -413,7 +413,7 @@ ui.launch.on("click",() => {launchBtn()})
 ui.preset.on("click",() => {presetBtn()})
 
 // 删除预设
-ui.deletePreset.on("click",() => {deletePresetBtn})
+ui.deletePreset.on("click",() => {deletePresetBtn()})
 
 // 添加明细
 ui.add.on("click", () => {addBtn()});
