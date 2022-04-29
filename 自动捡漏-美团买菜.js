@@ -44,7 +44,7 @@ function run(){
         var ckThread = threads.start(() => {
             setTimeout(() => {
                 console.info("检查一下是不是卡住了！！！")
-                alertShock();
+                notify("检查一下是不是卡住了！！！");
             }, (ckTimeout+singleInterval*textArray.length+groupInterval) * 60 * 1000)
         })
         
@@ -107,8 +107,12 @@ function run(){
         }
         console.info("延迟"+singleInterval+"分钟再开始下一个")
         sleep(singleInterval*60*1000)
-        back();
-        text("综合").findOne();
+        for(let i=0;i<3;i++){
+            back();
+            if(text("综合").findOne(2000)){
+                break;
+            }
+        }
     }
     console.info("查找数字，进入购物车")
     var matchNums = textMatches("\\d+").find();
@@ -129,7 +133,7 @@ function run(){
 }
 
 //===============================================================================
-//===================================震动方式=================================
+//===================================提醒方式=================================
 //===============================================================================
 // 成功震动 10秒
 function successShock() {
@@ -151,25 +155,51 @@ function alertShock() {
         sleep(800)
     }
 }
-
+// 响铃+弹窗提醒
+function notify(tips, volume) {
+    threads.start(()=>{
+        var volume = volume || 50
+        // 来电铃声 TYPE_RINGTONE 提示音 TYPE_NOTIFICATION 闹钟铃声 TYPE_ALARM
+        var uri = android.media.RingtoneManager.TYPE_ALARM
+        var mp = new android.media.MediaPlayer();
+        device.setMusicVolume(volume)
+        mp.setDataSource(context, android.media.RingtoneManager.getDefaultUri(uri));
+        mp.prepare();
+        mp.start();
+            dialogs.build({
+                title: tips,
+                positive: "确定"
+            }).on("cancel", ()=>{
+                mp.stop();
+            }).on("positive", ()=>{
+                mp.stop();
+            }).show();;
+    })
+}
 //===============================================================================
-//===================================额外功能=================================
+//===================================美团功能=================================
 //===============================================================================
 // 全选购物车
-function seelctAllcart() {
+function selectAllcart() {
     var j1 = getCartNum();
     if (j1 == 0) {
         text("全选").findOne().parent().click();
     } else {
         text("全选").findOne().parent().click();
-        while (true) {
+        let i = 0;
+        while(true){
             var j2 = getCartNum();
             if (j1 != j2) {
                 if(j2 == 0){
-                    text("全选").findOne().parent().click();
+                    clickTextOnce("全选", 0);
                 }
                 break;
             }
+            if(i++==100){
+                toast("全选购物车失败")
+                break;
+            }
+            sleep(500)
         }
     }
 }
@@ -186,25 +216,10 @@ function listenThreads() {
     threads.start(function () {
         className("android.widget.TextView").text("支付成功").findOne();
         console.info("恭喜您，抢购成功");
-        successShock();
+        notify("抢购成功啦！！！");
         console.info("结束");
         threads.shutDownAll();
     })
-}
-
-// 延迟阻塞
-function timingStart(time) {
-    if (time) {
-        console.info("准备定时执行，目标时间: " + time[0] + "时" + time[1] + "分" + time[2] + "秒")
-        while (true) {
-            let date = new Date();
-            if (date.getHours() == time[0] && date.getMinutes() == time[1] && date.getSeconds() == time[2]) {
-                break;
-            }
-            console.info("当前时间:" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds())
-            sleep(1000)
-        }
-    }
 }
 
 //===============================================================================
