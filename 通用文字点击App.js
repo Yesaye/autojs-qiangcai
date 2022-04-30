@@ -52,8 +52,8 @@ var version = "1.3.1";
 var floatyRunning = false;
 var PRESET_DATA = []; // 当前加载的的allData
 var clickList = []; // 当前预设的clickList
-var presetMenu = []; // 预设名单
-var presetMenuIndex = 0; // 当前预设索引
+// var presetMenu = []; // 预设名单
+// var presetMenuIndex = 0; // 当前预设索引
 //===============================================================================
 //===================================悬浮窗配置=================================
 //===============================================================================
@@ -83,10 +83,8 @@ loadData();
 
 // 主程序
 function run(){
-    console.info("正在打开"+PRESET_NAME_LIST[presetIndex])
-    app.launchPackage(PRESET_PACKAGE_LIST[presetIndex])
-
-    timingStart()
+    launchApp();
+    timingStart();
 }
 
 //===============================================================================
@@ -100,7 +98,7 @@ function checkUpdateShowInfo(){
         // 展示隐私信息
         dialogs.build({
             title: "隐私协议",
-            content: "千手观音是一款建议功能的文字点击器，可以帮您在必要的时候实现多处循环点击的操作。为了让用户能更加放心的使用，我们应用不会接入互联网，用户记录的所有数据均会存储于用户自己的设备中。\n\n隐私政策属于本应用中不可或缺的一部分，请先点击阅读浏览隐私协议",
+            content: "通用文字点击器是一款建议功能的文字点击器，可以帮您在必要的时候实现多处循环点击的操作。为了让用户能更加放心的使用，我们应用不会接入互联网，用户记录的所有数据均会存储于用户自己的设备中。\n\n隐私政策属于本应用中不可或缺的一部分，请先点击阅读浏览隐私协议",
             positive: "阅读",
             neutral: "取消",
             canceledOnTouchOutside:false
@@ -149,16 +147,16 @@ function  firstInit(){
 // 重新加载数据
 function loadData(){
     PRESET_DATA = storage.get("PRESET_DATA", false);
-    presetMenu = [];
+    PRESET_NAME_LIST = [];
     clickList = [];
     if(PRESET_DATA){
         if(PRESET_DATA.length>0){
             // 加载预设名单
             PRESET_DATA.forEach(a=>{
-                presetMenu.push(a.presetName);
+                PRESET_NAME_LIST.push(a.presetName);
             });
             // 加载当前预设内容
-            choicePreset(presetMenu[presetMenuIndex])
+            choicePreset(PRESET_NAME_LIST[presetIndex])
             // 加载一 些花里胡哨的？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
             for(let i=0;i<PRESET_DATA.length;i++){
                 PRESET_NAME_LIST.push(PRESET_DATA[i].presetName)
@@ -175,7 +173,7 @@ function choicePreset(pName){
     PRESET_DATA = storage.get("PRESET_DATA");
     for(var i=0;i<PRESET_DATA.length;i++){
         if(PRESET_DATA[i].presetName==pName){
-            presetMenuIndex = presetMenu.indexOf(pName);
+            presetIndex = PRESET_NAME_LIST.indexOf(pName);
             clickList = PRESET_DATA[i].clickList
             ui.list.setDataSource(clickList);
             ui.preset.setText("预设 ["+pName+"]");
@@ -204,13 +202,24 @@ function save(tips, data){
     loadData()
 }
 
-// 获取软件全称
+// 获取软件包名
 function getAppPackage(){
     PRESET_DATA = storage.get("PRESET_DATA");
     for(var i=0;i<PRESET_DATA.length;i++) {
-        if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+        if(PRESET_DATA[i].presetName==PRESET_NAME_LIST[presetIndex]){
             return PRESET_DATA[i].appPackage;
         }
+    }
+}
+
+function launchApp(){
+    var appPackage = getAppPackage();
+    var appName = app.getAppName(appPackage);
+    if(appPackage && appName){
+        toast("正在打开["+app.getAppName(appPackage)+"]")
+        app.launchPackage(appPackage)
+    } else {
+        toast("无法打开App，或App不存在")
     }
 }
 
@@ -243,11 +252,7 @@ function launchBtn(){
     // 开始运行
     if(!floatyRunning){
         if(clickList && clickList.length>0){
-            var appPackage = getAppPackage();
-            if(appPackage){
-                toast("正在打开["+app.getAppName(appPackage)+"]")
-                app.launchPackage(appPackage)
-            }
+            launchApp();
             // 打开悬浮窗
             showFloaty()
             ui.launch.setText("请在悬浮窗操作")
@@ -260,7 +265,7 @@ function launchBtn(){
 function presetBtn(){
     
     PRESET_DATA = storage.get("PRESET_DATA");
-    var menu = presetMenu.slice()
+    var menu = PRESET_NAME_LIST.slice()
     menu.unshift("[↑]导入预设")
     menu.unshift("[↓]导出预设")
     menu.unshift("[+]新建预设")
@@ -293,7 +298,7 @@ function presetBtn(){
         } else if(i==1) {
             // 导出预设
             for(var i=0;i<PRESET_DATA.length;i++){
-                if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+                if(PRESET_DATA[i].presetName==PRESET_NAME_LIST[presetIndex]){
                     setClip(JSON.stringify(PRESET_DATA[i]))
                     toast("已复制到剪切板")
                     break;
@@ -344,22 +349,22 @@ function presetBtn(){
             });
         } else {
             // 选择预设
-            choicePreset(presetMenu[i-3])
+            choicePreset(PRESET_NAME_LIST[i-3])
         }
     });
 }
 function deletePresetBtn(){
-    if(!presetMenu[presetMenuIndex]){
+    if(!PRESET_NAME_LIST[presetIndex]){
         toast("已经没有啦~")
         return;
     }
-    confirm("确定删除预设[" + presetMenu[presetMenuIndex] + "]吗？")
+    confirm("确定删除预设[" + PRESET_NAME_LIST[presetIndex] + "]吗？")
     .then(ok => {
         if (ok) {
             PRESET_DATA = storage.get("PRESET_DATA");
             var err = true;
             for(var i=0;i<PRESET_DATA.length;i++){
-                if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+                if(PRESET_DATA[i].presetName==PRESET_NAME_LIST[presetIndex]){
                     PRESET_DATA.splice(i, 1);
                     err = false
                     break;
@@ -370,7 +375,7 @@ function deletePresetBtn(){
                 return;
             }
             save(null, PRESET_DATA);
-            choicePreset(presetMenu[presetMenuIndex=0]);
+            choicePreset(PRESET_NAME_LIST[presetIndex=0]);
             toast("删除成功")
         }
     });
@@ -395,7 +400,7 @@ function addBtn(){
                     PRESET_DATA = storage.get("PRESET_DATA");
                     var clickListTemp;
                     for(var i=0;i<PRESET_DATA.length;i++){
-                        if(PRESET_DATA[i].presetName == presetMenu[presetMenuIndex]){
+                        if(PRESET_DATA[i].presetName == PRESET_NAME_LIST[presetIndex]){
                             clickListTemp = PRESET_DATA[i].clickList;
                             break;
                         }
@@ -419,7 +424,7 @@ function deleteList(iv, ih){
                     PRESET_DATA = storage.get("PRESET_DATA");
                     var clickListTemp;
                     for(var i=0;i<PRESET_DATA.length;i++){
-                        if(PRESET_DATA[i].presetName == presetMenu[presetMenuIndex]){
+                        if(PRESET_DATA[i].presetName == PRESET_NAME_LIST[presetIndex]){
                             clickListTemp = PRESET_DATA[i].clickList;
                             break;
                         }
@@ -553,7 +558,6 @@ function sf(){
     window.startFloaty.on("click", () => {
         if(!excuting){
             excuting = true;
-            toast("正在启动")
             window.startFloaty.setText("暂停")
             window.btn1.setAlpha(0.6)
             window.btn2.setAlpha(0.6)
