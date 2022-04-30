@@ -48,7 +48,7 @@ ui.layout(
 //===================================初始化=================================
 //===============================================================================
 // storages.remove("tywzdj")
-var version = "1.3.1";
+var version = "1.3.2";
 var floatyRunning = false;
 var PRESET_DATA = []; // 当前加载的的allData
 var clickList = []; // 当前预设的clickList
