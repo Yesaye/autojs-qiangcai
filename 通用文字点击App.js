@@ -48,25 +48,34 @@ ui.layout(
 //===================================初始化=================================
 //===============================================================================
 // storages.remove("tywzdj")
-var version = "1.3.0";
+var version = "1.3.1";
 var floatyRunning = false;
-var allData = []; // 当前加载的的allData
-var listData = []; // 当前预设的listData
+var PRESET_DATA = []; // 当前加载的的allData
+var clickList = []; // 当前预设的clickList
 var presetMenu = []; // 预设名单
 var presetMenuIndex = 0; // 当前预设索引
 //===============================================================================
 //===================================悬浮窗配置=================================
 //===============================================================================
+var PRESET_NAME_LIST = [];
+var PRESET_PACKAGE_LIST = [];
+var presetIndex = 0;
 var uiMode = ui.isUiThread(); // 是否ui模式
-var timingIndex = 0; // 对应timingModes
-var times = [
-    {v:false,name:"模式:立即"},
-    {v:[5, 59, 50],name:"模式:定时5:59:50"},
-    {v:[8, 29,50],name:"模式:定时8:29:50"}
+var exeModeIndex = 0; // 对应timingModes
+var exeMode = [
+    {k:1,v:"模式:立即抢购"},
+    {k:[5, 59, 50],v:"模式:定时5:59:50"},
+    {k:[8, 29,50],v:"模式:定时8:29:50"}
 ];
 var timingIntarval; // 定时模式的定时器
+var countdownIntarval; // 倒计时的定时器
 var floatyRunning = false; // 悬浮窗是否打开的
+var window; //悬浮窗实例
+var defaultTip = "选好模式和软件，然后开始";
+var timingTip = "请保持在购物车界面";
+var runningTip = "正在运行";
 
+//===============================================================================
 var storage = storages.create("yesaye-tywzdj");
 checkUpdateShowInfo();
 firstInit();
@@ -74,7 +83,10 @@ loadData();
 
 // 主程序
 function run(){
-    startClickThreads(listData);
+    console.info("正在打开"+PRESET_NAME_LIST[presetIndex])
+    app.launchPackage(PRESET_PACKAGE_LIST[presetIndex])
+
+    timingStart()
 }
 
 //===============================================================================
@@ -103,50 +115,55 @@ function checkUpdateShowInfo(){
 
 // 第一次打开初始化预设
 function  firstInit(){
-    if(!storage.contains("allData") || storage.get("allData").length==0){
-        allData = [
+    if(!storage.contains("PRESET_DATA") || storage.get("PRESET_DATA").length==0){
+        PRESET_DATA = [
             {
-                presetName:"美团买菜",rjqc:"美团买菜",
-                listData:
+                presetName:"美团买菜",appPackage:"com.meituan.retail.v.android",
+                clickList:
                     [
-                        {words:"结算",matchType:1,delay:1000,matchText:"左模糊[结算]"},
-                        {words:"我知道了",matchType:0,delay:0,matchText:"精确[我知道了]"},
-                        {words:"返回购物车",matchType:0,delay:0,matchText:"精确[返回购物车]"},
-                        {words:"极速支付",matchType:0,delay:0,matchText:"精确[极速支付]"},
-                        {words:"立即支付",matchType:0,delay:0,matchText:"精确[立即支付]"},
-                        {words:"确认并支付",matchType:0,delay:0,matchText:"精确[确认并支付]"},
-                        {words: "重新加载",matchType: 0,delay: 500,matchText:"精确[重新加载]"},
-                        {words: "免密支付",matchType: 0,delay: 1000,matchText:"精确[免密支付]"}
+                        {words: "结算",matchType: 1,delay: 1000},
+                        {words: "我知道了",matchType: 0,delay: 0},
+                        {words: "返回购物车",matchType: 0,delay: 0},
+                        {words: "极速支付",matchType: 0,delay: 0},
+                        {words: "立即支付",matchType: 0,delay: 0},
+                        {words: "确认并支付",matchType: 0,delay: 0},
+                        {words: "重新加载",matchType: 0,delay: 500},
+                        {words: "免密支付",matchType: 0,delay: 1000}
                     ]
             },
             {
-                presetName:"叮咚买菜",rjqc:"叮咚买菜",
-                listData:
+                presetName:"叮咚买菜",appPackage:"com.yaya.zone",
+                clickList:
                     [
-                        {words:"去结算",matchType:1,delay:0,matchText:"左模糊[去结算]"},
-                        {words:"返回购物车",matchType:0,delay:0,matchText:"精确[返回购物车]"},
-                        {words:"立即支付",matchType:0,delay:0,matchText:"精确[立即支付]"},
-                        {words:"重新加载",matchType:0,delay:100,matchText:"精确[重新加载]"}
+                        {words:"去结算",matchType:1,delay:0},
+                        {words:"返回购物车",matchType:0,delay:0},
+                        {words:"立即支付",matchType:0,delay:0},
+                        {words:"重新加载",matchType:0,delay:100}
                     ]
             }
         ];
-        save(null, allData)
+        save(null, PRESET_DATA)
     }
 }
 
 // 重新加载数据
 function loadData(){
-    allData = storage.get("allData", false);
+    PRESET_DATA = storage.get("PRESET_DATA", false);
     presetMenu = [];
-    listData = [];
-    if(allData){
-        if(allData.length>0){
+    clickList = [];
+    if(PRESET_DATA){
+        if(PRESET_DATA.length>0){
             // 加载预设名单
-            allData.forEach(a=>{
+            PRESET_DATA.forEach(a=>{
                 presetMenu.push(a.presetName);
             });
             // 加载当前预设内容
             choicePreset(presetMenu[presetMenuIndex])
+            // 加载一 些花里胡哨的？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+            for(let i=0;i<PRESET_DATA.length;i++){
+                PRESET_NAME_LIST.push(PRESET_DATA[i].presetName)
+                PRESET_PACKAGE_LIST.push(PRESET_DATA[i].appPackage)
+            }
         }
     } else {
         save(null, [])
@@ -155,20 +172,21 @@ function loadData(){
 
 // 选择预设 pName-预设名
 function choicePreset(pName){
-    allData = storage.get("allData");
-    for(var i=0;i<allData.length;i++){
-        if(allData[i].presetName==pName){
+    PRESET_DATA = storage.get("PRESET_DATA");
+    for(var i=0;i<PRESET_DATA.length;i++){
+        if(PRESET_DATA[i].presetName==pName){
             presetMenuIndex = presetMenu.indexOf(pName);
-            listData = allData[i].listData
-            ui.list.setDataSource(listData);
+            clickList = PRESET_DATA[i].clickList
+            ui.list.setDataSource(clickList);
             ui.preset.setText("预设 ["+pName+"]");
-            return;
+            return true;
         }
     }
     // 删完了的情况
-    listData = [];
-    ui.list.setDataSource(listData);
+    clickList = [];
+    ui.list.setDataSource(clickList);
     ui.preset.setText("预设 [无]");
+    return false;
 }
 
 // 保存数据 tips-提示 data-数据
@@ -176,16 +194,22 @@ function save(tips, data){
     if(tips){
         toast(tips)
     }
-    storage.put("allData", data)
+    for(let i=0;i<data.length;i++){
+        let p = data[i].clickList;
+        for(let j=0;j<p.length;j++){
+            p[j].matchText= (p[j].matchType==0?"精确":p[j].matchType==1?"左模糊":p[j].matchType==2?"右模糊":"全模糊")+"匹配";
+        }
+    }
+    storage.put("PRESET_DATA", data)
     loadData()
 }
 
 // 获取软件全称
-function getRjqc(){
-    allData = storage.get("allData");
-    for(var i=0;i<allData.length;i++) {
-        if(allData[i].presetName==presetMenu[presetMenuIndex]){
-            return allData[i].rjqc;
+function getAppPackage(){
+    PRESET_DATA = storage.get("PRESET_DATA");
+    for(var i=0;i<PRESET_DATA.length;i++) {
+        if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+            return PRESET_DATA[i].appPackage;
         }
     }
 }
@@ -218,11 +242,11 @@ function launchBtn(){
     }
     // 开始运行
     if(!floatyRunning){
-        if(listData && listData.length>0){
-            var appName = getRjqc();
-            if(appName){
-                toast("正在打开["+appName+"]")
-                app.launchApp(appName)
+        if(clickList && clickList.length>0){
+            var appPackage = getAppPackage();
+            if(appPackage){
+                toast("正在打开["+app.getAppName(appPackage)+"]")
+                app.launchPackage(appPackage)
             }
             // 打开悬浮窗
             showFloaty()
@@ -235,7 +259,7 @@ function launchBtn(){
 }
 function presetBtn(){
     
-    allData = storage.get("allData");
+    PRESET_DATA = storage.get("PRESET_DATA");
     var menu = presetMenu.slice()
     menu.unshift("[↑]导入预设")
     menu.unshift("[↓]导出预设")
@@ -250,27 +274,27 @@ function presetBtn(){
                 if (!pn) {
                     return;
                 }
-                for(var i=0;i<allData.length;i++){
-                    if(allData[i].presetName==pn){
+                for(var i=0;i<PRESET_DATA.length;i++){
+                    if(PRESET_DATA[i].presetName==pn){
                         toast("该预设已存在")
                         return;
                     }
                 }
                 dialogs.rawInput("请确认对应软件的全称", pn)
-                .then(rjqc => {
-                    if(!rjqc){
+                .then(appPackage => {
+                    if(!appPackage){
                         return;
                     }
-                    allData.push({"presetName":pn,"rjqc":rjqc,"listData":[]})
-                    save(null, allData)
+                    PRESET_DATA.push({"presetName":pn,"appPackage":appPackage,"clickList":[]})
+                    save(null, PRESET_DATA)
                     choicePreset(pn)
                 })
             });
         } else if(i==1) {
             // 导出预设
-            for(var i=0;i<allData.length;i++){
-                if(allData[i].presetName==presetMenu[presetMenuIndex]){
-                    setClip(JSON.stringify(allData[i]))
+            for(var i=0;i<PRESET_DATA.length;i++){
+                if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+                    setClip(JSON.stringify(PRESET_DATA[i]))
                     toast("已复制到剪切板")
                     break;
                 }
@@ -284,8 +308,8 @@ function presetBtn(){
                 }
                 var jsonData = JSON.parse(jsonString);
                 var sameName = false;
-                for(var i=0;i<allData.length;i++){
-                    if(allData[i].presetName==jsonData.presetName){
+                for(var i=0;i<PRESET_DATA.length;i++){
+                    if(PRESET_DATA[i].presetName==jsonData.presetName){
                         sameName = true;
                         break;
                     }
@@ -297,8 +321,8 @@ function presetBtn(){
                             return;
                         }
                         sameName = false
-                        for(var i=0;i<allData.length;i++){
-                            if(allData[i].presetName==pn){
+                        for(var i=0;i<PRESET_DATA.length;i++){
+                            if(PRESET_DATA[i].presetName==pn){
                                 sameName = true;
                                 break;
                             }
@@ -307,14 +331,14 @@ function presetBtn(){
                             toast("预设名依然重复")
                         } else {
                             jsonData.presetName = pn;
-                            allData.push(jsonData)
-                            save(null, allData)
+                            PRESET_DATA.push(jsonData)
+                            save(null, PRESET_DATA)
                             choicePreset(pn)
                         }
                     });
                 } else {
-                    allData.push(jsonData)
-                    save(null, allData)
+                    PRESET_DATA.push(jsonData)
+                    save(null, PRESET_DATA)
                     choicePreset(jsonData.presetName)
                 }
             });
@@ -332,11 +356,11 @@ function deletePresetBtn(){
     confirm("确定删除预设[" + presetMenu[presetMenuIndex] + "]吗？")
     .then(ok => {
         if (ok) {
-            allData = storage.get("allData");
+            PRESET_DATA = storage.get("PRESET_DATA");
             var err = true;
-            for(var i=0;i<allData.length;i++){
-                if(allData[i].presetName==presetMenu[presetMenuIndex]){
-                    allData.splice(i, 1);
+            for(var i=0;i<PRESET_DATA.length;i++){
+                if(PRESET_DATA[i].presetName==presetMenu[presetMenuIndex]){
+                    PRESET_DATA.splice(i, 1);
                     err = false
                     break;
                 }
@@ -345,7 +369,7 @@ function deletePresetBtn(){
                 toast("删除未成功")
                 return;
             }
-            save(null, allData);
+            save(null, PRESET_DATA);
             choicePreset(presetMenu[presetMenuIndex=0]);
             toast("删除成功")
         }
@@ -359,7 +383,7 @@ function addBtn(){
         }
         dialogs.build({
             title: "查找类型",
-            items: ["精确查询["+words+"]", "左模糊["+words+"]", "右模糊["+words+"]", "全模糊["+words+"]"],
+            items: ["精确["+words+"]", "左模糊["+words+"]", "右模糊["+words+"]", "全模糊["+words+"]"],
             itemsSelectMode: "single",
             itemsSelectedIndex: 0
         }).on("single_choice", (matchType, matchText)=>{
@@ -368,21 +392,21 @@ function addBtn(){
                     if(delay==null){
                         return;
                     }
-                    allData = storage.get("allData");
-                    var listDataTemp;
-                    for(var i=0;i<allData.length;i++){
-                        if(allData[i].presetName == presetMenu[presetMenuIndex]){
-                            listDataTemp = allData[i].listData;
+                    PRESET_DATA = storage.get("PRESET_DATA");
+                    var clickListTemp;
+                    for(var i=0;i<PRESET_DATA.length;i++){
+                        if(PRESET_DATA[i].presetName == presetMenu[presetMenuIndex]){
+                            clickListTemp = PRESET_DATA[i].clickList;
                             break;
                         }
                     }
-                    listDataTemp.push({
+                    clickListTemp.push({
                         words: words,
                         delay: delay,
                         matchType: matchType,
                         matchText: matchText
                     });
-                    save(null, allData)
+                    save(null, PRESET_DATA)
                 });
             }).show();
     })
@@ -392,16 +416,16 @@ function deleteList(iv, ih){
         confirm("确定删除条件[" + ih.item.words + "]吗？")
             .then(ok => {
                 if (ok) {
-                    allData = storage.get("allData");
-                    var listDataTemp;
-                    for(var i=0;i<allData.length;i++){
-                        if(allData[i].presetName == presetMenu[presetMenuIndex]){
-                            listDataTemp = allData[i].listData;
+                    PRESET_DATA = storage.get("PRESET_DATA");
+                    var clickListTemp;
+                    for(var i=0;i<PRESET_DATA.length;i++){
+                        if(PRESET_DATA[i].presetName == presetMenu[presetMenuIndex]){
+                            clickListTemp = PRESET_DATA[i].clickList;
                             break;
                         }
                     }
-                    listDataTemp.splice(ih.position, 1);
-                    save(null, allData)
+                    clickListTemp.splice(ih.position, 1);
+                    save(null, PRESET_DATA)
 
                 }
         });
@@ -439,15 +463,19 @@ function showFloaty(){
 function sf(){
     floatyRunning = true;
     var excuting = false;
-    var window = floaty.window(
-        <vertical id="boxFloaty" bg="#33333333" padding="3">
-            <linear>
-                <button id="moveFloaty" bg="#909399" color="white" text="窗口位置"/>
-                <button w="*" id="exitFloaty" bg="#f56c6c" color="white" text="关闭窗口"/>
+    window = floaty.window(
+        <vertical w="*" id="boxFloaty" bg="#9769aef5" padding="6">
+            <linear id="btn1">
+                <button id="moveFloaty" bg="#409eff" color="white" text="窗口位置"/>
+                <button w="*" id="exitFloaty" bg="#65affb" color="white" text="关闭窗口"/>
             </linear>
-            <linear>
-                <button id="modeFloaty" bg="#409eff" color="white" text="模式"/>
-                <button id="startFloaty" bg="#67c23a" color="white" text="开始"/>
+            <linear id="btn2">
+                <button id="modeFloaty" bg="#65affb" color="white" text="模式"/>
+                <button id="presetFloaty" bg="#409eff" color="white" text="预设"/>
+            </linear>
+            <text id="tip" w="*" gravity="center" color="white" bg="#f56c6c" textSize="12sp" text="选好模式和软件，然后开始"></text>
+            <linear id="btn3">
+                <button w="*" id="startFloaty" bg="#67c23a" color="white" text="开始"/>
             </linear>
         </vertical> 
     );
@@ -455,20 +483,22 @@ function sf(){
         setInterval(()=>{},1000)
         window.exitOnClose();
     }
+    window.tip.setText(defaultTip);
+    loadPresetName();
     // 模式
-    window.modeFloaty.setText(times[timingIndex].name);
+    window.modeFloaty.setText(exeMode[exeModeIndex].v);
     window.modeFloaty.on("click",()=>{
         if(!excuting) {
             let timingModesCopy = [];
-            for(let i=0;i<times.length;i++){
-                timingModesCopy[i] = times[i].name;
+            for(let i=0;i<exeMode.length;i++){
+                timingModesCopy[i] = exeMode[i].v;
             }
             timingModesCopy.push("自定义时间");
             dialogs.build({
                 title: "模式",
                 items: timingModesCopy,
                 itemsSelectMode: "single",
-                itemsSelectedIndex: timingIndex
+                itemsSelectedIndex: exeModeIndex
             }).on("single_choice", (k, v)=>{
                 if(k==timingModesCopy.length-1){
                     dialogs.rawInput("时间格式（时:分:秒）")
@@ -479,36 +509,89 @@ function sf(){
                             let m = t.match("^(2{1}[0-3]{1}|1{1}[0-9]{1}|0{0,1}\\d{1}):(5{1}[0-9]{1}|4{1}[0-9]{1}|3{1}[0-9]{1}|2{1}[0-9]{1}|1{1}[0-9]{1}|0{0,1}\\d{1}):(5{1}[0-9]{1}|4{1}[0-9]{1}|3{1}[0-9]{1}|2{1}[0-9]{1}|1{1}[0-9]{1}|0{0,1}\\d{1})$");
                             if (m) {
                                 let name = "模式:定时"+m[1]+":"+m[2]+":"+m[3]
-                                times.push({v:[m[1],m[2],m[3]],name:name})
-                                timingIndex = times.length-1;
+                                exeMode.push({k:[m[1],m[2],m[3]],v:name})
+                                exeModeIndex = exeMode.length-1;
                                 window.modeFloaty.setText(name);
                                 if(timingIntarval) clearInterval(timingIntarval);
+                                if(countdownIntarval) {clearInterval(countdownIntarval);window.tip.setText(defaultTip)};
                             } else {
                                 alert("格式有误");
                             }
                         });
                 } else {
-                    timingIndex = k;
+                    exeModeIndex = k;
                     window.modeFloaty.setText(v);
                     if(timingIntarval) clearInterval(timingIntarval);
+                    if(countdownIntarval) {clearInterval(countdownIntarval);window.tip.setText(defaultTip)};
                 }
-            }).show()
+            }).show();
+        } else {
+            toast("请先暂停")
         }
     });
+    // 切换预设
+    window.presetFloaty.on("click", () => {
+        if(!excuting) {
+            // 直接切换
+            presetIndex = presetIndex==PRESET_NAME_LIST.length-1?0:presetIndex+1;
+            loadPresetName();
+            // 弹窗切换
+            // dialogs.build({
+            //     title: "模式",
+            //     items: PRESET_NAME_LIST,
+            //     itemsSelectMode: "single",
+            //     itemsSelectedIndex: presetIndex
+            // }).on("single_choice", (k, v)=>{
+            //     presetIndex = k;
+            //     loadPresetName();
+            // }).show()
+        } else {
+            toast("请先暂停")
+        }
+    })
     // 开始执行/暂停
     window.startFloaty.on("click", () => {
         if(!excuting){
             excuting = true;
             toast("正在启动")
             window.startFloaty.setText("暂停")
-            window.boxFloaty.setAlpha(0.6)
-            timingStart(timingIndex, run)
-        } else if(excuting){
+            window.btn1.setAlpha(0.6)
+            window.btn2.setAlpha(0.6)
+            window.btn3.setAlpha(0.6)
+            window.tip.setText(runningTip);
+            if (exeMode[exeModeIndex].k && exeMode[exeModeIndex].k.length==3) {
+                let now = new Date();
+                let y = now.getFullYear();
+                let m = now.getMonth()+1;
+                let d = now.getDate();
+                let lastSecond = Date.parse(y+"/"+m+"/"+d+" "+exeMode[exeModeIndex].k[0]+":"+exeMode[exeModeIndex].k[1]+":"+exeMode[exeModeIndex].k[2]) - now.getTime();
+                if(lastSecond<-2000 || lastSecond>2000){
+                    if(lastSecond<-2000){
+                        lastSecond += 24*3600*1000;
+                    }
+                    window.tip.setText(timingTip)
+                    countdownIntarval = setInterval(()=>{
+                        if((lastSecond-=100)<=0){
+                            clearInterval(countdownIntarval);
+                            window.tip.setText(runningTip);
+                            window.modeFloaty.setText("倒计时:结束");
+                        } else{
+                            window.modeFloaty.setText("倒计时:"+ lastSecond+"\t");
+                        }
+                    },100)
+                }
+            }
+            threads.start(()=>{run()})
+        } else {
             excuting=false;
             window.startFloaty.setText("开始")
-            window.modeFloaty.setText(times[timingIndex].name);
-            window.boxFloaty.setAlpha(1)
+            window.modeFloaty.setText(exeMode[exeModeIndex].v);
+            window.btn1.setAlpha(1)
+            window.btn2.setAlpha(1)
+            window.btn3.setAlpha(1)
             if(timingIntarval) clearInterval(timingIntarval);
+            if(countdownIntarval) clearInterval(countdownIntarval);
+            window.tip.setText(defaultTip);
             threads.shutDownAll()
         }
     });
@@ -519,6 +602,7 @@ function sf(){
         floaty.closeAll()
         // 关闭定时器
         if(timingIntarval) clearInterval(timingIntarval);
+        if(countdownIntarval) {clearInterval(countdownIntarval);window.tip.setText(defaultTip)};
         // ui模式打开
         ui.launch.setText("开始")
         floatyRunning = false;
@@ -529,27 +613,31 @@ function sf(){
     window.moveFloaty.on("click", () => {
         window.setAdjustEnabled(!window.isAdjustEnabled());
     });
-    // 延迟阻塞
-    function timingStart(tI, func) {
-        var time = times[tI].v;
-        if (time && time.length==3) {
-            console.info("准备定时执行，目标时间: " + time[0] + "时" + time[1] + "分" + time[2] + "秒")
-            timingIntarval = setInterval(()=>{
-                let date = new Date();
-                if (date.getHours() == time[0] && date.getMinutes() == time[1] && date.getSeconds() == time[2]) {
-                    threads.start(()=>{
-                        func();
-                    })
-                    clearInterval(timingIntarval);
-                }
-                window.modeFloaty.setText(date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds());
-            }, 1000)
-        } else {
-            console.info("立即执行")
-            threads.start(()=>{
-                func();
-            })
+    function loadPresetName(){
+        window.presetFloaty.setText(PRESET_NAME_LIST[presetIndex]);
+    }
+}
+// 延迟阻塞
+function timingStart() {
+    let now = new Date();
+    let y = now.getFullYear();
+    let m = now.getMonth()+1;
+    let d = now.getDate();
+    let lastSecond = Date.parse(y+"/"+m+"/"+d+" "+exeMode[exeModeIndex].k[0]+":"+exeMode[exeModeIndex].k[1]+":"+exeMode[exeModeIndex].k[2]) - now.getTime();
+    if (exeMode[exeModeIndex].k && exeMode[exeModeIndex].k.length==3 && (lastSecond<-2000 || lastSecond>2000)) {
+        console.info("准备定时执行，目标时间: " + exeMode[exeModeIndex].k[0] + "时" + exeMode[exeModeIndex].k[1] + "分" + exeMode[exeModeIndex].k[2] + "秒");
+        if(lastSecond<-2000){
+            lastSecond += 24*3600*1000;
         }
+        timingIntarval = setInterval(()=>{
+            if((lastSecond-=100)<=0){
+                startClickThreads(PRESET_DATA[presetIndex].clickList)
+                clearInterval(timingIntarval);
+            }
+        },100)
+    } else {
+        console.info("立即开始执行")
+        startClickThreads(PRESET_DATA[presetIndex].clickList)
     }
 }
 //===============================================================================
