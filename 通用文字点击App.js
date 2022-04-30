@@ -151,17 +151,13 @@ function loadData(){
     clickList = [];
     if(PRESET_DATA){
         if(PRESET_DATA.length>0){
-            // 加载预设名单
-            PRESET_DATA.forEach(a=>{
-                PRESET_NAME_LIST.push(a.presetName);
+            // 加载预设和包名名单
+            PRESET_DATA.forEach(x=>{
+                PRESET_NAME_LIST.push(x.presetName)
+                PRESET_PACKAGE_LIST.push(x.appPackage)
             });
             // 加载当前预设内容
             choicePreset(PRESET_NAME_LIST[presetIndex])
-            // 加载一 些花里胡哨的？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
-            for(let i=0;i<PRESET_DATA.length;i++){
-                PRESET_NAME_LIST.push(PRESET_DATA[i].presetName)
-                PRESET_PACKAGE_LIST.push(PRESET_DATA[i].appPackage)
-            }
         }
     } else {
         save(null, [])
@@ -539,6 +535,7 @@ function sf(){
         if(!excuting) {
             // 直接切换
             presetIndex = presetIndex==PRESET_NAME_LIST.length-1?0:presetIndex+1;
+            console.info(presetIndex)
             loadPresetName();
             // 弹窗切换
             // dialogs.build({
