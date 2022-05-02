@@ -122,8 +122,8 @@ function  firstInit(){
                         {words: "结算",matchType: 1,delay: 1000},
                         {words: "我知道了",matchType: 0,delay: 0},
                         {words: "返回购物车",matchType: 0,delay: 0},
-                        {words: "极速支付",matchType: 0,delay: 0},
-                        {words: "立即支付",matchType: 0,delay: 0},
+                        {words: "极速支付",matchType: 0,delay: 300},
+                        {words: "立即支付",matchType: 0,delay: 300},
                         {words: "确认并支付",matchType: 0,delay: 0},
                         {words: "重新加载",matchType: 0,delay: 500},
                         {words: "免密支付",matchType: 0,delay: 1000}
@@ -135,7 +135,7 @@ function  firstInit(){
                     [
                         {words:"去结算",matchType:1,delay:0},
                         {words:"返回购物车",matchType:0,delay:0},
-                        {words:"立即支付",matchType:0,delay:0},
+                        {words:"立即支付",matchType:0,delay:100},
                         {words:"重新加载",matchType:0,delay:100}
                     ]
             }
