@@ -46,24 +46,21 @@ ui.layout(
 
 //===============================================================================
 //===================================初始化=================================
-//===============================================================================
 // storages.remove("tywzdj")
-var version = "1.3.2";
+var version = "1.3.3";
 var floatyRunning = false;
 var PRESET_DATA = []; // 当前加载的的allData
 var clickList = []; // 当前预设的clickList
-// var presetMenu = []; // 预设名单
-// var presetMenuIndex = 0; // 当前预设索引
+var fastMode = false; // true:极速点击 false:模拟坐标点击
 //===============================================================================
 //===================================悬浮窗配置=================================
-//===============================================================================
 var PRESET_NAME_LIST = [];
 var PRESET_PACKAGE_LIST = [];
 var presetIndex = 0;
 var uiMode = ui.isUiThread(); // 是否ui模式
 var exeModeIndex = 0; // 对应timingModes
 var exeMode = [
-    {k:1,v:"模式:立即抢购"},
+    {k:false,v:"模式:立即抢购"},
     {k:[5, 59, 50],v:"模式:定时5:59:50"},
     {k:[8, 29,50],v:"模式:定时8:29:50"}
 ];
@@ -89,7 +86,6 @@ function run(){
 
 //===============================================================================
 //===================================按钮=================================
-//===============================================================================
 // 隐私协议
 function checkUpdateShowInfo(){
     if(storage.contains("updateInfo") && storage.get("updateInfo")==version){
@@ -212,7 +208,7 @@ function launchApp(){
     var appPackage = getAppPackage();
     var appName = app.getAppName(appPackage);
     if(appPackage && appName){
-        toast("正在打开["+app.getAppName(appPackage)+"]")
+        toast("正在打开["+appName+"]")
         app.launchPackage(appPackage)
     } else {
         toast("无法打开App，或App不存在")
@@ -221,7 +217,6 @@ function launchApp(){
 
 //===============================================================================
 //===================================ui控件触发=================================
-//===============================================================================
 function launchBtn(){
     // 检查悬浮窗权限
     if (!floaty.checkPermission()) {
@@ -281,7 +276,7 @@ function presetBtn(){
                         return;
                     }
                 }
-                dialogs.rawInput("请确认对应软件的全称", pn)
+                dialogs.rawInput("请确认对应软件的[包名]", app.getPackageName(pn))
                 .then(appPackage => {
                     if(!appPackage){
                         return;
@@ -448,7 +443,6 @@ ui.list.on("item_bind", (itemView, itemHolder) => {deleteList(itemView, itemHold
 
 //===============================================================================
 //===================================悬浮窗=================================
-//===============================================================================
 // 创建悬浮窗（ui模式下需要在线程里创建悬浮窗）
 function showFloaty(){
     if(uiMode){
@@ -643,48 +637,54 @@ function timingStart() {
 }
 //===============================================================================
 //===================================文字点击部分=================================
-//===============================================================================
 // 批量开启文字点击线程
 function startClickThreads(list) {
     for (let i = 0; i < list.length; i++) {
         (function abc(j) {
             threads.start(function () {
-                clickTextLoop(list[j].words, list[j].delay, list[j].matchType)
+                clickLoop(list[j].words, list[j].delay, list[j].matchType)
             })
         })(i)
     }
 }
 
 // 基础点击方法 t-文字 d-间隔 m-匹配类型
-function clickTextLoop(t, d, m) {
+function clickLoop(t, d, m) {
     console.info("初始化线程:" + t + " " + d + " " + m)
     for(let j = 1;;j++){
-        findParentClick(matchText(t, m).findOne(), 1);
-        console.info("第" + j + "次'" + t + "'")
-        if (d != 0) {
-            sleep(d)
+        if(fastMode){
+            clickUpwardParent(match(t, m).findOne(), 1);
+        } else {
+            clickPosition(match(t, m));
         }
+        console.info("第" + j + "次'" + t + "'")
+        if (d) sleep(d); 
     }
 }
 
 // 基础点击方法 t-文字 m-匹配类型
-function clickTextOnce(t, m){
-    findParentClick(matchText(t, m).findOne(), 1);
+function clickOnce(t, m){
+    if(fastMode){
+        clickUpwardParent(match(t, m).findOne(), 1);
+    } else {
+        clickPosition(match(t, m))
+    }
     console.info("点击'" + t + "'")
 }
 
-// 匹配文字
-function matchText(t, m){
-    let tv = className("android.widget.TextView");
-    let temp = m == 0 ? tv.text(t) :
-        m == 1 ? tv.textStartsWith(t) :
-        m == 2 ? tv.textEnds(t) :
-        tv.textContains(t);
-    return temp;
+// 匹配查找
+function match(t, m){
+    switch (m) {
+        case 0: return className("android.widget.TextView").text(t);
+        case 1: return className("android.widget.TextView").textStartsWith(t);
+        case 2: return className("android.widget.TextView").textEnds(t);
+        case 3: return className("android.widget.TextView").textContains(t);
+        default: return id(t);
+    }
 }
 
 // 向上点击
-function findParentClick(p, deep) {
+function clickUpwardParent(p, deep) {
     if (p.clickable()) {
         p.click();
     } else {
@@ -692,6 +692,19 @@ function findParentClick(p, deep) {
             toast("click err")
             return;
         }
-        findParentClick(p.parent())
+        clickUpwardParent(p.parent())
     }
+}
+
+// 点击元素中心点
+function clickPosition(p){
+    p.findOne();
+    sleep(150); // 抵消弹框动画，否则bounds位置不准
+    let pb = p.findOne().bounds();
+    let x = pb.centerX();
+    let y = pb.centerY();
+    threads.start(()=>{
+        click(x, y); // 多点他妈的几次
+        console.info("点击:(" + x + "," + y + ")");
+    })
 }

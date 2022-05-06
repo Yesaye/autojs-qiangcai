@@ -1,9 +1,8 @@
-// console.show()
+//console.show()
 console.info("注意：提前将商品加入购物车")
 
 //===============================================================================
 //===================================基础配置=================================
-//===============================================================================
 var  PRESET_DATA = [
     {
         presetName:"美团买菜",appPackage:"com.meituan.retail.v.android",
@@ -11,28 +10,30 @@ var  PRESET_DATA = [
             [
                 {words: "结算",matchType: 1,delay: 1000},
                 {words: "我知道了",matchType: 0,delay: 0},
-                {words: "返回购物车",matchType: 0,delay: 0},
-                {words: "极速支付",matchType: 0,delay: 300},
-                {words: "立即支付",matchType: 0,delay: 300},
+                {words: "极速支付",matchType: 0,delay: 0},
+                {words: "立即支付",matchType: 0,delay: 0},
                 {words: "确认并支付",matchType: 0,delay: 0},
-                {words: "重新加载",matchType: 0,delay: 500},
-                {words: "免密支付",matchType: 0,delay: 1000}
+                {words: "免密支付",matchType: 0,delay: 0},
             ]
+            // {words: "返回购物车",matchType: 0,delay: 0},
+            // {words: "重新加载",matchType: 0,delay: 500},
+            // {words: "img_shopping_cart",matchType: 4,delay: 5000} // 坐标点击时会偶尔点到其他页面
     },
     {
         presetName:"叮咚买菜",appPackage:"com.yaya.zone",
         clickList:
             [
                 {words:"去结算",matchType:1,delay:0},
-                {words:"返回购物车",matchType:0,delay:0},
-                {words:"立即支付",matchType:0,delay:100},
-                {words:"重新加载",matchType:0,delay:100}
+                {words:"立即支付",matchType:0,delay:0},
+                {words:"重新加载",matchType:0,delay:300}
             ]
+            // {words:"返回购物车",matchType:0,delay:0},
     }
 ];
+var fastMode = true; // true:极速点击 false:模拟坐标点击
+
 //===============================================================================
 //===================================悬浮窗配置=================================
-//===============================================================================
 var PRESET_NAME_LIST = [];
 var PRESET_PACKAGE_LIST = [];
 var presetIndex = 0;
@@ -43,7 +44,7 @@ for(let i=0;i<PRESET_DATA.length;i++){
 var uiMode = ui.isUiThread(); // 是否ui模式
 var exeModeIndex = 0; // 对应timingModes
 var exeMode = [
-    {k:1,v:"模式:立即抢购"},
+    {k:false,v:"模式:立即抢购"},
     {k:[5, 59, 50],v:"模式:定时5:59:50"},
     {k:[8, 29,50],v:"模式:定时8:29:50"}
 ];
@@ -63,20 +64,104 @@ function run () {
     console.info("正在打开"+PRESET_NAME_LIST[presetIndex])
     app.launchPackage(PRESET_PACKAGE_LIST[presetIndex])
 
-    if(exeMode[exeModeIndex].k!=1){
+    // 开启前置动作
+    if(exeMode[exeModeIndex].k){
         switch (presetIndex){
             case 0: meituanFastGo(); break;
             case 1: dingdongFatGo(); break;
             default:;
         }
     }
+    // 开启监测线程
+    switch (presetIndex){
+        case 0: meituanListen(); break;
+        case 1: dingdongListen(); break;
+        default:;
+    }
 
+    // 开启动作
     timingStart()
 }
 
 //===============================================================================
-//===================================提醒方式=================================
+//===================================美团功能=================================
+// 快速前置
+function meituanFastGo(){
+    console.info("美团fastGo");
+    var stipBtnThread = threads.start(function () {
+        clickOnce("跳过", 0)
+    })
+    var qrBtnThread = threads.start(function () {
+        clickOnce("确认选择", 0)
+    })
+
+    console.info("点击购物车")
+    let isc = id("img_shopping_cart").findOne(6000)
+    if (isc) clickOnce("img_shopping_cart", 4);
+    stipBtnThread.interrupt();
+    qrBtnThread.interrupt();
+    
+    console.info("全选购物车")
+    selectAllcart();
+}
+// 监测线程
+function meituanListen() {
+    console.info("开启监测线程")
+    // 监测抢购成功
+    threads.start(() => {
+        className("android.widget.TextView").text("支付成功").findOne();
+        console.info("恭喜您，抢购成功");
+        notify("抢购成功啦！！！",()=>{window.startFloaty.click()});
+        console.info("结束");
+    })
+}
+// 全选购物车
+function selectAllcart() {
+    var j1 = getCartNum();
+    if (j1 == 0) {
+        clickOnce("全选", 0)
+    } else {
+        clickOnce("全选", 0)
+        let i = 0;
+        while(true){
+            var j2 = getCartNum();
+            if (j1 != j2) {
+                if(j2 == 0){
+                    clickOnce("全选", 0);
+                }
+                break;
+            }
+            if(i++==100){
+                toast("全选购物车失败")
+                break;
+            }
+            sleep(500)
+        }
+    }
+}
+// 获取购物车数量
+function getCartNum() {
+    var temp = textStartsWith("结算").findOne().text().match(/\d+/);
+    return temp ? temp[0] : 0;
+}
+
 //===============================================================================
+//===================================叮咚功能=================================
+// 快速前置
+function dingdongFatGo(){
+    console.info("叮咚fastGo");
+    var skipBtnThread = threads.start(()=>{
+        clickOnce("跳过", 1)
+    })
+    clickOnce("购物车", 0)
+    skipBtnThread.interrupt();
+}
+// 监测线程
+function dingdongListen(){
+}
+
+//===============================================================================
+//===================================提醒方式=================================
 // 成功震动 10秒
 function successShock() {
     threads.start(()=>{
@@ -102,105 +187,29 @@ function alertShock() {
     });
 }
 // 响铃+弹窗提醒
-function notify(tips, volume) {
+function notify(tips, func) {
     threads.start(()=>{
-        var volume = volume || 50
         // 来电铃声 TYPE_RINGTONE 提示音 TYPE_NOTIFICATION 闹钟铃声 TYPE_ALARM
         var uri = android.media.RingtoneManager.TYPE_ALARM
         var mp = new android.media.MediaPlayer();
-        device.setMusicVolume(volume)
         mp.setDataSource(context, android.media.RingtoneManager.getDefaultUri(uri));
         mp.prepare();
         mp.start();
-            dialogs.build({
-                title: tips,
-                positive: "确定"
-            }).on("cancel", ()=>{
-                mp.stop();
-            }).on("positive", ()=>{
-                mp.stop();
-            }).show();;
+        dialogs.build({
+            title: tips,
+            positive: "确定"
+        }).on("cancel", ()=>{
+            mp.stop();
+            func();
+        }).on("positive", ()=>{
+            mp.stop();
+            func();
+        }).show();
     })
-}
-//===============================================================================
-//===================================美团功能=================================
-//===============================================================================
-// 快速进去购物车并全选
-function meituanFastGo(){
-    var stipBtnThread = threads.start(function () {
-        clickTextOnce("跳过", 0)
-    })
-    var qrBtnThread = threads.start(function () {
-        clickTextOnce("确认选择", 0)
-    })
-
-    console.info("点击购物车")
-    let isc = id("img_shopping_cart").findOne(6000)
-    if (isc) isc.parent().click();
-    stipBtnThread.interrupt();
-    qrBtnThread.interrupt();
-    
-    console.info("全选购物车")
-    selectAllcart();
-    
-    console.info("开启监测线程")
-    listenThreads();
-}
-// 全选购物车
-function selectAllcart() {
-    var j1 = getCartNum();
-    if (j1 == 0) {
-        text("全选").findOne().parent().click();
-    } else {
-        text("全选").findOne().parent().click();
-        let i = 0;
-        while(true){
-            var j2 = getCartNum();
-            if (j1 != j2) {
-                if(j2 == 0){
-                    clickTextOnce("全选", 0);
-                }
-                break;
-            }
-            if(i++==100){
-                toast("全选购物车失败")
-                break;
-            }
-            sleep(500)
-        }
-    }
-}
-// 获取购物车数量
-function getCartNum() {
-    var temp = textStartsWith("结算").findOne().text().match(/\d+/);
-    return temp ? temp[0] : 0;
-}
-// 监测线程
-function listenThreads() {
-    // 监测抢购成功
-    threads.start(function () {
-        className("android.widget.TextView").text("支付成功").findOne();
-        console.info("恭喜您，抢购成功");
-        notify("抢购成功啦！！！");
-        console.info("结束");
-        threads.shutDownAll();
-    })
-}
-//===============================================================================
-//===================================叮咚功能=================================
-//===============================================================================
-
-function dingdongFatGo(){
-    var skipBtnThread = threads.start(()=>{
-        clickTextOnce("跳过", 1)
-    })
-    clickTextOnce("购物车", 0)
-    skipBtnThread.interrupt();
 }
 
 //===============================================================================
 //===================================悬浮窗=================================
-//===============================================================================
 // 创建悬浮窗（ui模式下需要在线程里创建悬浮窗）
 function showFloaty(){
     if(uiMode){
@@ -356,7 +365,7 @@ function sf(){
         // 关闭定时器
         if(timingIntarval) clearInterval(timingIntarval);
         if(countdownIntarval) {clearInterval(countdownIntarval);window.tip.setText(defaultTip)};
-        // ui模式打开
+        // ui模式下
         // ui.launch.setText("开始")
         floatyRunning = false;
         // 关闭所有线程
@@ -393,52 +402,57 @@ function timingStart() {
         startClickThreads(PRESET_DATA[presetIndex].clickList)
     }
 }
+
 //===============================================================================
 //===================================文字点击部分=================================
-//===============================================================================
-// 随机延迟
-var randomDelayMin = 100;
-var randomDelayMaxn = 300;
 // 批量开启文字点击线程
 function startClickThreads(list) {
     for (let i = 0; i < list.length; i++) {
         (function abc(j) {
             threads.start(function () {
-                clickTextLoop(list[j].words, list[j].delay, list[j].matchType)
+                clickLoop(list[j].words, list[j].delay, list[j].matchType)
             })
         })(i)
     }
 }
 
 // 基础点击方法 t-文字 d-间隔 m-匹配类型
-function clickTextLoop(t, d, m) {
+function clickLoop(t, d, m) {
     console.info("初始化线程:" + t + " " + d + " " + m)
     for(let j = 1;;j++){
-        findParentClick(matchText(t, m).findOne(), 1);
+        if(fastMode){
+            clickUpwardParent(match(t, m).findOne(), 1);
+        } else {
+            clickPosition(match(t, m));
+        }
         console.info("第" + j + "次'" + t + "'")
-        let randomDelay = Math.random()*(randomDelayMaxn-randomDelayMin)+randomDelayMin;
-        sleep(d==0?randomDelay:(d+randomDelay));
+        if (d) sleep(d); 
     }
 }
 
 // 基础点击方法 t-文字 m-匹配类型
-function clickTextOnce(t, m){
-    findParentClick(matchText(t, m).findOne(), 1);
+function clickOnce(t, m){
+    if(fastMode){
+        clickUpwardParent(match(t, m).findOne(), 1);
+    } else {
+        clickPosition(match(t, m))
+    }
     console.info("点击'" + t + "'")
 }
 
-// 匹配文字
-function matchText(t, m){
-    let tv = className("android.widget.TextView");
-    let temp = m == 0 ? tv.text(t) :
-        m == 1 ? tv.textStartsWith(t) :
-        m == 2 ? tv.textEnds(t) :
-        tv.textContains(t);
-    return temp;
+// 匹配查找
+function match(t, m){
+    switch (m) {
+        case 0: return className("android.widget.TextView").text(t);
+        case 1: return className("android.widget.TextView").textStartsWith(t);
+        case 2: return className("android.widget.TextView").textEnds(t);
+        case 3: return className("android.widget.TextView").textContains(t);
+        default: return id(t);
+    }
 }
 
 // 向上点击
-function findParentClick(p, deep) {
+function clickUpwardParent(p, deep) {
     if (p.clickable()) {
         p.click();
     } else {
@@ -446,6 +460,19 @@ function findParentClick(p, deep) {
             toast("click err")
             return;
         }
-        findParentClick(p.parent())
+        clickUpwardParent(p.parent())
     }
+}
+
+// 点击元素中心点
+function clickPosition(p){
+    p.findOne();
+    sleep(150); // 抵消弹框动画，否则bounds位置不准
+    let pb = p.findOne().bounds();
+    let x = pb.centerX();
+    let y = pb.centerY();
+    threads.start(()=>{
+        click(x, y); // 多点他妈的几次
+        console.info("点击:(" + x + "," + y + ")");
+    })
 }
