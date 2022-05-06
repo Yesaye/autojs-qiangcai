@@ -51,7 +51,7 @@ var version = "1.3.3";
 var floatyRunning = false;
 var PRESET_DATA = []; // 当前加载的的allData
 var clickList = []; // 当前预设的clickList
-var fastMode = false; // true:极速点击 false:模拟坐标点击
+var fastMode = true; // true:极速点击 false:模拟坐标点击
 //===============================================================================
 //===================================悬浮窗配置=================================
 var PRESET_NAME_LIST = [];
