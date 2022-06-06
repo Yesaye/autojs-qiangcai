@@ -15,8 +15,8 @@ const listData = [
                 {words: "我知道了",matchType: 0,delay: 0},
                 {words: "极速支付",matchType: 0,delay: 0},
                 {words: "立即支付",matchType: 0,delay: 0},
-                {words: "确认并支付",matchType: 0,delay: 0},
-                {words: "免密支付",matchType: 0,delay: 0},
+                {words: "确认并支付",matchType: 0,delay: 1000},
+                {words: "免密支付",matchType: 0,delay: 1000},
 ];
 var fastMode = true; // true:极速点击 false:模拟坐标点击
 
